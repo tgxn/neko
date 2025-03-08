@@ -25,7 +25,7 @@ lockPref("browser.safebrowsing.downloads.remote.enabled",	false);
 lockPref("browser.helperApps.alwaysAsk.force",	false);
 lockPref("browser.helperApps.neverAsk.saveToDisk",	"application/zip,application/octet-stream,image/jpeg,application/vnd.ms-outlook,text/html,application/pdf");
 lockPref("browser.helperApps.neverAsk.openFile",	"application/zip,application/octet-stream,image/jpeg,application/vnd.ms-outlook,text/html,application/pdf");
-lockPref("browser.newtabpage.activity-stream.default.sites",	"https://ipleak.net/,https://www.youtube.com/,https://www.google.com/");
+//lockPref("browser.newtabpage.activity-stream.default.sites",	"");
 // dark mode
 lockPref("reader.color_scheme", "dark");
 lockPref("devtools.theme", "dark");
@@ -35,3 +35,48 @@ lockPref("lightweightThemes.selectedThemeID", "firefox-compact-dark@mozilla.org"
 lockPref("extensions.activeThemeID", "firefox-compact-dark@mozilla.org");
 lockPref("browser.theme.toolbar-theme", 0);
 lockPref("browser.in-content.dark-mode", true);
+
+// mousewheel fix
+lockPref("mousewheel.default.delta_multiplier_x", 45);
+lockPref("mousewheel.default.delta_multiplier_y", 45);
+lockPref("mousewheel.default.delta_multiplier_z", 45);
+
+// disable vie wbtn
+lockPref("browser.tabs.firefox-view", false);
+lockPref("browser.tabs.firefox-view-next", false);
+lockPref("browser.tabs.tabmanager.enabled", false);
+
+// telemetry
+lockPref("devtools.onboarding.telemetry.logged", false);
+lockPref("toolkit.telemetry.updatePing.enabled", false);
+lockPref("browser.newtabpage.activity-stream.feeds.telemetry", false);
+lockPref("browser.newtabpage.activity-stream.telemetry", false);
+lockPref("browser.newtabpage.activity-stream.feeds.discoverystreamfeed", false);
+lockPref("browser.newtabpage.activity-stream.showSponsored", false);
+lockPref("browser.ping-centre.telemetry", false);
+lockPref("toolkit.telemetry.bhrPing.enabled", false);
+lockPref("toolkit.telemetry.enabled", false);
+lockPref("toolkit.telemetry.firstShutdownPing.enabled", false);
+lockPref("toolkit.telemetry.hybridContent.enabled", false);
+lockPref("toolkit.telemetry.newProfilePing.enabled", false);
+lockPref("toolkit.telemetry.reportingpolicy.firstRun", false);
+lockPref("toolkit.telemetry.shutdownPingSender.enabled", false);
+lockPref("toolkit.telemetry.unified", false);
+lockPref("toolkit.telemetry.archive.enabled", false);
+lockPref("datareporting.healthreport.uploadEnabled", false);
+lockPref("datareporting.policy.dataSubmissionEnabled", false);
+lockPref("datareporting.sessions.current.clean", false);
+
+// disable activity stream
+lockPref("browser.newtabpage.enabled", false); 
+lockPref("browser.newtab.preload", false); 
+lockPref("browser.newtabpage.activity-stream.aboutHome.enabled", false);
+
+// disable geo
+lockPref("geo.provider.ms-windows-location", false);
+lockPref("geo.provider.use_gpsd", false);
+lockPref("geo.provider.use_corelocation", false);
+lockPref("geo.provider.use_geoclue", false);
+lockPref("browser.region.network.url", "");
+lockPref("browser.region.update.enabled", false);
+
