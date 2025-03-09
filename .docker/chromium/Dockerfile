@@ -4,7 +4,7 @@ FROM $BASE_IMAGE
 #
 # install neko chromium
 RUN set -eux; \
-    echo "deb http://ftp.de.debian.org/debian bookworm main" >> /etc/apt/sources.list; \
+    echo "deb http://deb.debian.org/debian bookworm main" >> /etc/apt/sources.list; \
     apt-get update; \
     apt-get install -y --no-install-recommends unzip chromium chromium-common chromium-sandbox openbox; \
     #
