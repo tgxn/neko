@@ -31,6 +31,9 @@ RUN set -eux; \
         # file chooser handler, clipboard, drop
         xdotool xclip libgtk-3-0 \
         #
+        # intel driver + vaapi https://stackoverflow.com/questions/64182160/running-gstreamer-vaapi-in-docker
+        #apt-get install -y --no-install-recommends libva2 libdrm-dev libva-dev libpci3 \
+        #
         # gst
         gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
         gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
