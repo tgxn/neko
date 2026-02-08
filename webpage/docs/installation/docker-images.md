@@ -75,6 +75,10 @@ In comparison to Chromium-based browsers, Firefox-based browsers do not require 
 | <AppIcon id="tor-browser" /> | [Tor Browser](https://www.torproject.org/) <br /> A browser designed to access the Tor network for enhanced privacy. | [`ghcr.io/m1k1o/neko/tor-browser`](https://ghcr.io/m1k1o/neko/tor-browser) |
 | <AppIcon id="waterfox" /> | [Waterfox](https://www.waterfox.net/) <br /> A privacy-focused browser based on Firefox. | [`ghcr.io/m1k1o/neko/waterfox`](https://ghcr.io/m1k1o/neko/waterfox) |
 
+:::warning
+**Waterfox** is currently not built automatically, because Cloudflare blocks the download and therefore github actions are failing. You can build it manually to get the latest version.
+:::
+
 Check the [Firefox-based browsers customization guide](/docs/v3/customization/browsers#firefox-based) for more information on how to customize Firefox-based browsers (configuring profile, installing extensions, etc.).
 
 ### Chromium-based browsers {#chromium-based-browsers}
@@ -237,11 +241,7 @@ For images with Nvidia GPU hardware acceleration using EGL use:
 - [`ghcr.io/m1k1o/neko/nvidia-microsoft-edge`](https://ghcr.io/m1k1o/neko/nvidia-microsoft-edge)
 - [`ghcr.io/m1k1o/neko/nvidia-brave`](https://ghcr.io/m1k1o/neko/nvidia-brave)
 
-The base image is available at [`ghcr.io/m1k1o/neko/nvidia-base`](https://ghcr.io/m1k1o/neko/nvidia-base).
-
-:::danger
-There is a known issue with EGL and Chromium-based browsers, see [m1k1o/neko #279](https://github.com/m1k1o/neko/issues/279).
-:::
+The base image is available at [`ghcr.io/m1k1o/neko/nvidia-base`](https://ghcr.io/m1k1o/neko/nvidia-base). See [Examples](/docs/v3/installation/examples#nvidia) for more information and usage.
 
 ## Supported Architectures {#arch}
 

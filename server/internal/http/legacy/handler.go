@@ -8,7 +8,9 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
+	"time"
 
 	"github.com/m1k1o/neko/server/internal/api"
 	oldEvent "github.com/m1k1o/neko/server/internal/http/legacy/event"
@@ -35,26 +37,30 @@ var (
 			return true
 		},
 	}
-
-	// DefaultDialer is a dialer with all fields set to the default zero values.
-	DefaultDialer = websocket.DefaultDialer
 )
 
 type LegacyHandler struct {
 	logger     zerolog.Logger
 	serverAddr string
+	pathPrefix string
 	bannedIPs  map[string]struct{}
 	sessionIPs map[string]string
+	wsDialer   *websocket.Dialer
 }
 
-func New(serverAddr string) *LegacyHandler {
+func New(serverAddr, pathPrefix string) *LegacyHandler {
 	// Init
 
 	return &LegacyHandler{
 		logger:     log.With().Str("module", "legacy").Logger(),
 		serverAddr: serverAddr,
+		pathPrefix: pathPrefix,
 		bannedIPs:  make(map[string]struct{}),
 		sessionIPs: make(map[string]string),
+		wsDialer: &websocket.Dialer{
+			Proxy:            nil, // disable proxy for local requests
+			HandshakeTimeout: 45 * time.Second,
+		},
 	}
 }
 
@@ -99,7 +105,7 @@ func (h *LegacyHandler) Route(r types.Router) {
 		defer s.destroy()
 
 		// dial to the remote backend
-		connBackend, _, err := DefaultDialer.Dial("ws://"+h.serverAddr+"/api/ws?token="+url.QueryEscape(s.token), nil)
+		connBackend, _, err := h.wsDialer.Dial("ws://"+h.serverAddr+path.Join(s.pathPrefix, "/api/ws")+"?token="+url.QueryEscape(s.token), nil)
 		if err != nil {
 			h.logger.Error().Err(err).Msg("couldn't dial to the remote backend")
 
@@ -142,10 +148,12 @@ func (h *LegacyHandler) Route(r types.Router) {
 							m = websocket.FormatCloseMessage(e.Code, e.Text)
 						}
 					}
-					errc <- err
+					errc <- fmt.Errorf("src read message error: %w", err)
 					dst.WriteMessage(websocket.CloseMessage, m)
 					break
 				}
+
+				// handle text messages
 				if msgType == websocket.TextMessage {
 					err = rewriteTextMessage(msg)
 
@@ -162,12 +170,26 @@ func (h *LegacyHandler) Route(r types.Router) {
 							Message: strings.ReplaceAll(err.Error(), ErrBackendRespone.Error()+": ", ""),
 						})
 						continue
-					} else if errors.Is(err, ErrWebsocketSend) {
+					}
+
+					if errors.Is(err, ErrWebsocketSend) {
+						errc <- fmt.Errorf("dst write message error: %w", err)
+						break
+					}
+
+					h.logger.Error().Err(err).Msg("couldn't rewrite text message")
+					continue
+				}
+
+				// forward ping pong messages
+				if msgType == websocket.PingMessage ||
+					msgType == websocket.PongMessage {
+					err = dst.WriteMessage(msgType, msg)
+					if err != nil {
 						errc <- err
 						break
-					} else {
-						h.logger.Error().Err(err).Msg("couldn't rewrite text message")
 					}
+					continue
 				}
 			}
 		}
@@ -181,9 +203,9 @@ func (h *LegacyHandler) Route(r types.Router) {
 		var message string
 		select {
 		case err = <-errClient:
-			message = "websocketproxy: Error when copying from backend to client: %v"
+			message = "websocketproxy: Error when copying from backend to client"
 		case err = <-errBackend:
-			message = "websocketproxy: Error when copying from client to backend: %v"
+			message = "websocketproxy: Error when copying from client to backend"
 		}
 
 		if e, ok := err.(*websocket.CloseError); !ok || e.Code == websocket.CloseAbnormalClosure {
