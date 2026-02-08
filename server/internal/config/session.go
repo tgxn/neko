@@ -75,7 +75,7 @@ func (Session) Init(cmd *cobra.Command) error {
 		return err
 	}
 
-	cmd.PersistentFlags().Int("session.heartbeat_interval", 120, "interval in seconds for sending heartbeat messages")
+	cmd.PersistentFlags().Int("session.heartbeat_interval", 10, "interval in seconds for sending heartbeat messages")
 	if err := viper.BindPFlag("session.heartbeat_interval", cmd.PersistentFlags().Lookup("session.heartbeat_interval")); err != nil {
 		return err
 	}
@@ -206,7 +206,7 @@ func (s *Session) SetV2() {
 
 	// set legacy flag if any V2 configuration was used
 	if !viper.IsSet("legacy") && enableLegacy {
-		log.Warn().Msg("legacy configuration is enabled because at least one V2 configuration was used, please migrate to V3 configuration, or set 'NEKO_LEGACY=true' to acknowledge this message")
+		log.Warn().Msg("legacy configuration is enabled because at least one V2 configuration was used, please migrate to V3 configuration, visit https://neko.m1k1o.net/docs/v3/migration-from-v2 for more details")
 		viper.Set("legacy", true)
 	}
 }

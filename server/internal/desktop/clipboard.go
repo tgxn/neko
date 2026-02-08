@@ -10,14 +10,19 @@ import (
 	"github.com/m1k1o/neko/server/pkg/xevent"
 )
 
+const (
+	ClipboardTextPlainTarget = "UTF8_STRING"
+	ClipboardTextHtmlTarget  = "text/html"
+)
+
 func (manager *DesktopManagerCtx) ClipboardGetText() (*types.ClipboardText, error) {
-	text, err := manager.ClipboardGetBinary("STRING")
+	text, err := manager.ClipboardGetBinary(ClipboardTextPlainTarget)
 	if err != nil {
 		return nil, err
 	}
 
 	// Rich text must not always be available, can fail silently.
-	html, _ := manager.ClipboardGetBinary("text/html")
+	html, _ := manager.ClipboardGetBinary(ClipboardTextHtmlTarget)
 
 	return &types.ClipboardText{
 		Text: string(text),
@@ -31,10 +36,10 @@ func (manager *DesktopManagerCtx) ClipboardSetText(data types.ClipboardText) err
 	// is set, if available. Otherwise plain text.
 
 	if data.HTML != "" {
-		return manager.ClipboardSetBinary("text/html", []byte(data.HTML))
+		return manager.ClipboardSetBinary(ClipboardTextHtmlTarget, []byte(data.HTML))
 	}
 
-	return manager.ClipboardSetBinary("STRING", []byte(data.Text))
+	return manager.ClipboardSetBinary(ClipboardTextPlainTarget, []byte(data.Text))
 }
 
 func (manager *DesktopManagerCtx) ClipboardGetBinary(mime string) ([]byte, error) {
@@ -53,6 +58,23 @@ func (manager *DesktopManagerCtx) ClipboardGetBinary(mime string) ([]byte, error
 	return stdout.Bytes(), nil
 }
 
+func (manager *DesktopManagerCtx) replaceClipboardCommand(newCmd *exec.Cmd) {
+	// Swap the current clipboard command with the new one.
+	oldCmd := manager.clipboardCommand.Swap(newCmd)
+
+	// If the command is already running, we need to shutdown it properly.
+	if oldCmd == nil || oldCmd.ProcessState != nil {
+		return
+	}
+
+	// If there is a previous command running and it was not stopped yet, we need to kill it.
+	if err := oldCmd.Process.Kill(); err != nil {
+		manager.logger.Err(err).Msg("failed to kill previous clipboard command")
+	} else {
+		manager.logger.Debug().Msg("killed previous clipboard command")
+	}
+}
+
 func (manager *DesktopManagerCtx) ClipboardSetBinary(mime string, data []byte) error {
 	cmd := exec.Command("xclip", "-selection", "clipboard", "-in", "-target", mime)
 
@@ -64,7 +86,9 @@ func (manager *DesktopManagerCtx) ClipboardSetBinary(mime string, data []byte) e
 		return err
 	}
 
-	// TODO: Refactor.
+	// Shutdown previous command if it exists and replace it with the new one.
+	manager.replaceClipboardCommand(cmd)
+
 	// We need to wait until the data came to the clipboard.
 	wait := make(chan struct{})
 	xevent.Emmiter.Once("clipboard-updated", func(payload ...any) {
@@ -84,9 +108,23 @@ func (manager *DesktopManagerCtx) ClipboardSetBinary(mime string, data []byte) e
 
 	stdin.Close()
 
-	// TODO: Refactor.
-	// cmd.Wait()
-	<-wait
+	select {
+	case <-manager.shutdown:
+		return fmt.Errorf("clipboard manager is shutting down")
+	case <-wait:
+	}
+
+	manager.wg.Add(1)
+	go func() {
+		defer manager.wg.Done()
+
+		if err := cmd.Wait(); err != nil {
+			msg := strings.TrimSpace(stderr.String())
+			manager.logger.Err(err).Msgf("clipboard command finished with error: %s", msg)
+		} else {
+			manager.logger.Debug().Msg("clipboard command finished successfully")
+		}
+	}()
 
 	return nil
 }

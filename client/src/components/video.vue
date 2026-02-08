@@ -26,6 +26,8 @@
           @touchmove.stop.prevent="onTouchHandler"
           @touchstart.stop.prevent="onTouchHandler"
           @touchend.stop.prevent="onTouchHandler"
+          @compositionstart="onCompositionStartHandler"
+          @compositionend="onCompositionEndHandler"
         />
         <div v-if="!playing && playable" class="player-overlay" @click.stop.prevent="playAndUnmute">
           <i class="fas fa-play-circle" />
@@ -65,7 +67,7 @@
         <li
           v-if="hosting && is_touch_device"
           :class="extraControls || 'extra-control'"
-          @click.stop.prevent="toggleMobileKeyboard"
+          @click.stop.prevent="openMobileKeyboard"
         >
           <i class="fas fa-keyboard" />
         </li>
@@ -250,6 +252,7 @@
     private focused = false
     private fullscreen = false
     private mutedOverlay = true
+    private lastTextAreaValue = ''
 
     get admin() {
       return this.$accessor.user.admin
@@ -261,6 +264,10 @@
 
     get connecting() {
       return this.$accessor.connecting
+    }
+
+    get controlling() {
+      return this.$accessor.remote.controlling
     }
 
     get hosting() {
@@ -367,12 +374,11 @@
 
     get is_touch_device() {
       return (
-        // check if the device has a touch screen
+        // detect if the device has touch support
         ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
-        // we also check if the device has a pointer
-        !window.matchMedia('(pointer:fine)').matches &&
-        // and is capable of hover, then it probably has a mouse
-        !window.matchMedia('(hover:hover)').matches
+        // the primary input mechanism includes a pointing device of
+        // limited accuracy, such as a finger on a touchscreen.
+        window.matchMedia('(pointer: coarse)').matches
       )
     }
 
@@ -753,12 +759,25 @@
       first.target.dispatchEvent(simulatedEvent)
     }
 
+    onCompositionStartHandler() {
+      this.lastTextAreaValue = this._overlay.value
+    }
+
+    onCompositionEndHandler() {
+      this._overlay.value = this.lastTextAreaValue
+    }
+
+    isMouseDown = false
+
     onMouseDown(e: MouseEvent) {
-      if (!this.hosting) {
-        this.$emit('control-attempt', e)
+      this.isMouseDown = true
+
+      if (this.locked) {
+        return
       }
 
-      if (!this.hosting || this.locked) {
+      if (!this.controlling) {
+        this.implicitHostingRequest(e)
         return
       }
 
@@ -767,12 +786,55 @@
     }
 
     onMouseUp(e: MouseEvent) {
-      if (!this.hosting || this.locked) {
+      // only if we are the one who started the mouse down
+      if (!this.isMouseDown) return
+      this.isMouseDown = false
+
+      if (this.locked) {
+        return
+      }
+
+      if (!this.controlling) {
+        this.implicitHostingRequest(e)
         return
       }
 
       this.sendMousePos(e)
       this.$client.sendData('mouseup', { key: e.button + 1 })
+    }
+
+    private reqMouseDown: MouseEvent | null = null
+    private reqMouseUp: MouseEvent | null = null
+
+    @Watch('controlling')
+    onControlChange(controlling: boolean) {
+      if (controlling && this.reqMouseDown) {
+        this.onMouseDown(this.reqMouseDown)
+      }
+
+      if (controlling && this.reqMouseUp) {
+        this.onMouseUp(this.reqMouseUp)
+      }
+
+      this.reqMouseDown = null
+      this.reqMouseUp = null
+    }
+
+    implicitHostingRequest(e: MouseEvent) {
+      if (this.implicitHosting) {
+        if (e.type === 'mousedown') {
+          this.reqMouseDown = e
+          this.reqMouseUp = null
+          this.$accessor.remote.request()
+        } else if (e.type === 'mouseup') {
+          this.reqMouseUp = e
+        }
+        return
+      }
+
+      if (e.type === 'mousedown') {
+        this.$emit('control-attempt', e)
+      }
     }
 
     onMouseMove(e: MouseEvent) {
@@ -822,64 +884,20 @@
     @Watch('hosting')
     @Watch('locked')
     onFocus() {
+      // focus opens the keyboard on mobile
+      if (this.is_touch_device) {
+        return
+      }
+
       // in order to capture key events, overlay must be focused
       if (this.focused && this.hosting && !this.locked) {
         this._overlay.focus()
       }
     }
 
-    //
-    // mobile keyboard
-    //
-
-    kbdShow = false
-    kbdOpen = false
-
-    showMobileKeyboard() {
-      // skip if not a touch device
-      if (!this.is_touch_device) return
-
-      this.kbdShow = true
-      this.kbdOpen = false
-
-      const overlay = this.$refs.overlay as HTMLTextAreaElement
-      overlay.focus()
-      window.visualViewport?.addEventListener('resize', this.onVisualViewportResize)
-    }
-
-    hideMobileKeyboard() {
-      // skip if not a touch device
-      if (!this.is_touch_device) return
-
-      this.kbdShow = false
-      this.kbdOpen = false
-
-      const overlay = this.$refs.overlay as HTMLTextAreaElement
-      window.visualViewport?.removeEventListener('resize', this.onVisualViewportResize)
-      overlay.blur()
-    }
-
-    toggleMobileKeyboard() {
-      // skip if not a touch device
-      if (!this.is_touch_device) return
-
-      if (this.kbdShow) {
-        this.hideMobileKeyboard()
-      } else {
-        this.showMobileKeyboard()
-      }
-    }
-
-    // visual viewport resize event is fired when keyboard is opened or closed
-    // android does not blur textarea when keyboard is closed, so we need to do it manually
-    onVisualViewportResize() {
-      if (!this.kbdShow) return
-
-      if (!this.kbdOpen) {
-        this.kbdOpen = true
-      } else {
-        this.hideMobileKeyboard()
-      }
+    openMobileKeyboard() {
+      // focus opens the keyboard on mobile
+      this._overlay.focus()
     }
   }
 </script>

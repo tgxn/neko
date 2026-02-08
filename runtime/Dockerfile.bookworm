@@ -14,8 +14,8 @@ RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         wget ca-certificates supervisor \
-        pulseaudio xserver-xorg-video-dummy \
-        libcairo2 libxcb1 libxrandr2 libxv1 libopus0 libvpx7 libxcvt0 \
+        pulseaudio dbus-x11 xserver-xorg-video-dummy \
+        libcairo2 libxcb1 libxrandr2 libxv1 libopus0 libvpx7 libx264-164 libvo-aacenc0 librtmp1 libxcvt0 \
         #
         # needed for profile upload preStop hook
         zip curl \
@@ -46,6 +46,7 @@ RUN set -eux; \
         /home/$USERNAME/.config/pulse  \
         /home/$USERNAME/.local/share/xorg; \
     chmod 1777 /var/log/neko; \
+    chmod 0700 /tmp/runtime-$USERNAME; \
     chown $USERNAME /var/log/neko/ /tmp/runtime-$USERNAME; \
     chown -R $USERNAME:$USERNAME /home/$USERNAME; \
     #
@@ -72,8 +73,10 @@ RUN set -eux; \
 #
 # copy runtime configs
 COPY --chown=neko:neko .Xresources /home/$USERNAME/.Xresources
+COPY dbus /usr/bin/dbus
 COPY default.pa /etc/pulse/default.pa
 COPY supervisord.conf /etc/neko/supervisord.conf
+COPY supervisord.dbus.conf /etc/neko/supervisord.dbus.conf
 COPY xorg.conf /etc/neko/xorg.conf
 
 #
@@ -95,7 +98,9 @@ ENV NEKO_PLUGINS_DIR=/etc/neko/plugins/
 #
 # add healthcheck
 HEALTHCHECK --interval=10s --timeout=5s --retries=8 \
-    CMD wget -O - http://localhost:${NEKO_SERVER_BIND#*:}/health || exit 1
+    CMD wget -O - http://localhost:${NEKO_SERVER_BIND#*:}/health || \
+        wget --no-check-certificate -O - https://localhost:${NEKO_SERVER_BIND#*:}/health || \
+        exit 1
 
 #
 # run neko
