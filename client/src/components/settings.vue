@@ -4,7 +4,7 @@
       <li>
         <span>{{ $t('setting.scroll') }}</span>
         <label class="slider">
-          <input type="range" min="1" max="100" v-model="scroll" />
+          <input type="range" min="0" max="1" v-model="scroll" />
         </label>
       </li>
       <li>
@@ -28,13 +28,13 @@
           <span />
         </label>
       </li>
-      <li>
+      <!-- <li>
         <span>{{ $t('setting.chat_sound') }}</span>
         <label class="switch">
           <input type="checkbox" v-model="chat_sound" />
           <span />
         </label>
-      </li>
+      </li> -->
       <li>
         <span>{{ $t('setting.keyboard_layout') }}</span>
         <label class="select">

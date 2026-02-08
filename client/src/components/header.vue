@@ -2,7 +2,7 @@
   <div class="header">
     <div class="neko">
       <img src="@/assets/images/logo.svg" alt="n.eko" />
-      <span><b>n</b>.eko</span>
+      <span><b>neko</b>.tgxn.net</span>
     </div>
     <ul class="menu">
       <li>
