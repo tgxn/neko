@@ -1,9 +1,9 @@
 <template>
   <div class="header">
-    <a href="https://github.com/m1k1o/neko" title="Github repository" target="_blank" class="neko">
+    <div class="neko">
       <img src="@/assets/images/logo.svg" alt="n.eko" />
-      <span><b>n</b>.eko</span>
-    </a>
+      <span><b>neko</b>.tgxn.net</span>
+    </div>
     <ul class="menu">
       <li>
         <i

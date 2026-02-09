@@ -28,13 +28,13 @@
           <span />
         </label>
       </li>
-      <li>
+      <!-- <li>
         <span>{{ $t('setting.chat_sound') }}</span>
         <label class="switch">
           <input type="checkbox" v-model="chat_sound" />
           <span />
         </label>
-      </li>
+      </li> -->
       <li>
         <span>{{ $t('setting.keyboard_layout') }}</span>
         <label class="select">
